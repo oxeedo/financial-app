@@ -1,7 +1,7 @@
 import React from "react";
 import Header from "../components/Header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import layer1 from "../assets/Layer-1.png";
 import goal from "../assets/Goal.png";
 import newProject from "../assets/New-Project-2.png";
@@ -52,7 +52,18 @@ const HomePage = () => {
               <br />
               you will need! <br />
               <span className="sign-up">
-                Sign Up <FontAwesomeIcon icon={faArrowRight} />
+                <a href="/signup">
+                  Sign Up
+                  <FontAwesomeIcon
+                    icon={faChevronRight}
+                    style={{
+                      fontSize: "25px",
+                      fontWeight: "400",
+                      marginLeft: "5px", // Add some space between the text and the icon
+                      verticalAlign: "middle", // Align the icon vertically in the middle
+                    }}
+                  />
+                </a>
               </span>
             </p>
             <video autoplay loop muted playsinline>

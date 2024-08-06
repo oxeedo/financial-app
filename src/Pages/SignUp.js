@@ -1,43 +1,147 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Preloader from "../helper/Preloader";
-import { useState, useEffect } from "react";
 import Header from "../components/Header";
-import { Link } from "react-router-dom";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import { useNavigate } from "react-router-dom";
 
 const SignUp = () => {
-  let [active, setActive] = useState(true);
+  const navigate = useNavigate();
+  const [active, setActive] = useState(true);
+  const [formData, setFormData] = useState({
+    email: "",
+    firstname: "",
+    surname: "",
+    password: "",
+    terms: false,
+  });
+  const [errors, setErrors] = useState({
+    email: "",
+    firstname: "",
+    surname: "",
+    password: "",
+    terms: "",
+  });
+  const prevErrorsRef = useRef(errors);
+
   useEffect(() => {
-    setTimeout(function () {
+    setTimeout(() => {
       setActive(false);
     }, 2000);
   }, []);
-  const [formData, setFormData] = useState({
-    email: "",
-    confirmEmail: "",
-    firstName: "",
-    surname: "",
-    password: "",
-    retypePassword: "",
-  });
+
+  const validateForm = async () => {
+    let isValid = true;
+    const newErrors = {
+      email: "",
+      firstname: "",
+      surname: "",
+      password: "",
+      terms: "",
+    };
+
+    // Validate email
+    if (!formData.email) {
+      newErrors.email = "Email is required.";
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Email format is invalid.";
+      isValid = false;
+    } else {
+      const emailExists = await checkEmailExists(formData.email);
+      if (emailExists) {
+        newErrors.email = "Email is already registered.";
+        isValid = false;
+      }
+    }
+
+    // Validate firstName
+    if (!formData.firstname) {
+      newErrors.firstname = "First name is required.";
+      isValid = false;
+    }
+
+    // Validate surName
+    if (!formData.surname) {
+      newErrors.surname = "Surname is required.";
+      isValid = false;
+    }
+
+    // Validate password
+    if (!formData.password) {
+      newErrors.password = "Password is required.";
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters long.";
+      isValid = false;
+    }
+
+    // Validate terms checkbox
+    if (!formData.terms) {
+      newErrors.terms = "You must accept the terms and conditions.";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    prevErrorsRef.current = newErrors; // Update the ref with the latest errors
+    return isValid;
+  };
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form data:", formData);
-    // Handle form submission, e.g., send data to an API
+
+    if (!(await validateForm())) return; // Stop form submission if validation fails
+
+    try {
+      const response = await fetch("http://localhost:3000/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log("Registration successful:", result);
+        navigate("/successful");
+      } else if (result.error && result.error === "Email already exists") {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          email: "This email is already registered.",
+        }));
+      } else {
+        console.error("Registration failed:", result);
+        // Handle other registration errors
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
   };
+
+  const checkEmailExists = async (email) => {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/check-email?email=${encodeURIComponent(email)}`
+      );
+      const data = await response.json();
+      return data.emailExists;
+    } catch (error) {
+      console.error("Error checking email:", error);
+      return false;
+    }
+  };
+
   return (
     <>
-      {/* Preloader */}
-      {active === true && <Preloader />}
+      {active && <Preloader />}
       <div>
         <header>
           <Header />
@@ -57,29 +161,24 @@ const SignUp = () => {
                   onChange={handleChange}
                   className="input-container"
                 />
+                {errors.email && <p className="error">{errors.email}</p>}
               </div>
+
               <div className="mainform-container">
                 <input
                   type="text"
-                  id="confirmEmail"
-                  name="confirmEmail"
-                  placeholder="Confirm Email:"
-                  value={formData.confirmEmail}
-                  onChange={handleChange}
-                  className="input-container"
-                />
-              </div>
-              <div className="mainform-container">
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
+                  id="firstname"
+                  name="firstname"
                   placeholder="First Name:"
-                  value={formData.firstName}
+                  value={formData.firstname}
                   onChange={handleChange}
                   className="input-container"
                 />
+                {errors.firstname && (
+                  <p className="error">{errors.firstname}</p>
+                )}
               </div>
+
               <div className="mainform-container">
                 <input
                   type="text"
@@ -90,7 +189,9 @@ const SignUp = () => {
                   onChange={handleChange}
                   className="input-container"
                 />
+                {errors.surname && <p className="error">{errors.surname}</p>}
               </div>
+
               <div className="mainform-container">
                 <input
                   type="password"
@@ -101,17 +202,7 @@ const SignUp = () => {
                   onChange={handleChange}
                   className="input-container"
                 />
-              </div>
-              <div className="mainform-container">
-                <input
-                  type="password"
-                  id="retypePassword"
-                  name="retypePassword"
-                  placeholder="Retype Password:"
-                  value={formData.retypePassword}
-                  onChange={handleChange}
-                  className="input-container"
-                />
+                {errors.password && <p className="error">{errors.password}</p>}
               </div>
 
               <div
@@ -124,18 +215,18 @@ const SignUp = () => {
                 }}
               >
                 <p>
-                  <a href="">captcha</a>
+                  <a href="#">captcha</a>
                 </p>
                 <div style={{ display: "flex" }}>
-                  <div
-                    style={{
-                      height: 20,
-                      width: 20,
-                      background: "white",
-                      border: "1px solid gray",
-                    }}
-                  ></div>
-                  <p style={{ paddingLeft: 10, margin: 0, fontWeight: 500 }}>
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    name="terms"
+                    className="form-check-input me-2"
+                    checked={formData.terms}
+                    onChange={handleChange}
+                  />
+                  <p style={{ paddingLeft: 5, margin: 0, fontWeight: 500 }}>
                     I accept the
                     <span style={{ color: "red", padding: 5, fontWeight: 500 }}>
                       <a
@@ -168,22 +259,22 @@ const SignUp = () => {
                     </span>
                   </p>
                 </div>
+                {errors.terms && <p className="error">{errors.terms}</p>}
               </div>
-              <div className="regButton">
-                <Link style={{ color: "white" }} to="/signup">
-                  <button type="submit">Create Account</button>
-                </Link>
 
+              <div className="regButton">
+                <button type="submit">Create Account</button>
                 <span
                   style={{
                     textDecoration: "none",
                     fontWeight: "500",
+                    paddingLeft: 5,
                   }}
                 >
                   Already have an account?
                   <a
                     style={{ color: "red", textDecoration: "none" }}
-                    href="/"
+                    href="/login"
                     onMouseOver={(e) =>
                       (e.currentTarget.style.textDecoration = "underline")
                     }

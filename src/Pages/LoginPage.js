@@ -2,7 +2,7 @@ import React from "react";
 import Header from "../components/Header";
 import { useState, useEffect } from "react";
 import Preloader from "../helper/Preloader";
-import LoginForm from "./LoginForm";
+import LoginForm from "../components/LoginForm";
 
 const LoginPage = () => {
   let [active, setActive] = useState(true);
